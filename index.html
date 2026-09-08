@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receipt Analyzer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f4f4f0;
+            --primary-color: #ff3366;
+            --border-color: #000000;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            font-family: 'Press Start 2P', monospace;
+            color: var(--border-color);
+            line-height: 1.6;
+            padding: 20px;
+            font-size: 10px;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        @media (min-width: 768px) {
+            body {
+                padding: 40px;
+                font-size: 12px;
+            }
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .pixel-box {
+            background-color: #ffffff;
+            padding: 20px;
+            margin-bottom: 30px;
+            position: relative;
+            clip-path: polygon(
+                4px 0, calc(100% - 4px) 0,
+                calc(100% - 4px) 4px, 100% 4px,
+                100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px),
+                calc(100% - 4px) 100%, 4px 100%,
+                4px calc(100% - 4px), 0 calc(100% - 4px),
+                0 4px, 4px 4px
+            );
+        }
+
+        @media (min-width: 768px) {
+            .pixel-box {
+                padding: 30px;
+            }
+        }
+
+        .pixel-wrapper {
+            background-color: var(--border-color);
+            padding: 4px; /* Border thickness */
+            margin-bottom: 30px;
+            filter: drop-shadow(6px 6px 0px rgba(0,0,0,1));
+            clip-path: polygon(
+                4px 0, calc(100% - 4px) 0,
+                calc(100% - 4px) 4px, 100% 4px,
+                100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px),
+                calc(100% - 4px) 100%, 4px 100%,
+                4px calc(100% - 4px), 0 calc(100% - 4px),
+                0 4px, 4px 4px
+            );
+            transition: transform 0.1s ease-in-out;
+        }
+
+        .pixel-wrapper .pixel-box {
+            margin-bottom: 0; 
+        }
+
+        h1 {
+            font-size: 14px;
+            text-transform: uppercase;
+            margin-top: 0;
+            margin-bottom: 30px;
+            text-align: center;
+            line-height: 1.4;
+        }
+
+        @media (min-width: 768px) {
+            h1 {
+                font-size: 18px;
+            }
+        }
+
+        .file-input-wrapper {
+            margin-bottom: 25px;
+            background: #eee;
+            padding: 15px;
+            border: 2px dashed #ccc;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        input[type="file"] {
+            display: block;
+            width: 100%;
+            font-family: inherit;
+            font-size: 10px;
+        }
+
+        .btn-wrapper {
+            background-color: #000;
+            padding: 4px;
+            display: inline-block;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: #fff;
+            border: none;
+            padding: 15px 20px;
+            font-family: inherit;
+            font-size: 12px;
+            cursor: pointer;
+            text-transform: uppercase;
+            width: 100%;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #e6004c;
+        }
+        
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-direction: column;
+        }
+
+        @media (min-width: 768px) {
+            .button-group {
+                flex-direction: row;
+            }
+        }
+
+        .btn-reset {
+            background-color: #555;
+        }
+
+        .btn-reset:hover {
+            background-color: #777;
+        }
+
+        .result-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .result-list li {
+            background: #eef;
+            margin-bottom: 10px;
+            padding: 15px;
+            border-left: 4px solid var(--primary-color);
+            word-break: break-all;
+            line-height: 1.8;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .result-list li:last-child {
+            margin-bottom: 0;
+        }
+
+        .result-item {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        @media (min-width: 768px) {
+            .result-item {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+        }
+
+        .result-content {
+            flex-grow: 1;
+        }
+
+        .download-btn {
+            background-color: #000;
+            color: #fff;
+            padding: 10px 15px;
+            font-size: 10px;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            border: none;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+        }
+
+        .download-btn:hover {
+            background-color: var(--primary-color);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            font-size: 14px;
+            color: var(--primary-color);
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="pixel-wrapper">
+        <div class="pixel-box">
+            <h1>Receipt Analyzer<br><span style="font-size: 10px; color: #888;">System V1.0</span></h1>
+            <form id="uploadForm">
+                <div class="file-input-wrapper">
+                    <input type="file" id="receipts" name="receipts[]" multiple accept=".jpg,.jpeg,.png,.pdf,.xls,.xlsx,.doc,.docx" required>
+                </div>
+                
+                <div class="button-group">
+                    <div class="pixel-wrapper btn-wrapper" style="filter: none; margin-bottom: 0; flex: 1;">
+                        <button type="submit" id="submitBtn" class="pixel-box" style="margin:0; padding: 15px;">
+                            Analyze Files
+                        </button>
+                    </div>
+                    <div class="pixel-wrapper btn-wrapper" style="filter: none; margin-bottom: 0; flex: 1;">
+                        <button type="button" id="resetBtn" class="pixel-box btn-reset" style="margin:0; padding: 15px;">
+                            Reset
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Container for dynamic results -->
+    <div id="resultsContainer" class="pixel-wrapper hidden">
+        <div class="pixel-box">
+            <div id="loadingIndicator" class="loading hidden">ANALYZING...</div>
+            <ul id="resultsList" class="result-list">
+                <!-- Results injected here via JS -->
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('uploadForm');
+        const fileInput = document.getElementById('receipts');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const resultsList = document.getElementById('resultsList');
+        const submitBtn = document.getElementById('submitBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+
+        resetBtn.addEventListener('click', () => {
+            form.reset();
+            resultsList.innerHTML = '';
+            resultsContainer.classList.add('hidden');
+            loadingIndicator.classList.add('hidden');
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Analyze Files";
+        });
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const files = fileInput.files;
+            if (files.length === 0) return;
+
+            // Reset UI for new submission
+            resultsList.innerHTML = '';
+            resultsContainer.classList.remove('hidden');
+            loadingIndicator.classList.remove('hidden');
+            submitBtn.disabled = true;
+            submitBtn.textContent = "PROCESSING...";
+
+            // Simulate server/OCR processing delay
+            setTimeout(() => {
+                loadingIndicator.classList.add('hidden');
+                
+                // Process each uploaded file
+                Array.from(files).forEach((file, index) => {
+                    const originalName = file.name;
+                    let suggestedName = "";
+
+                    // Mock logic to simulate intelligent categorization
+                    // In your real PHP app, this comes from your OCR/Regex logic
+                    if (originalName.toLowerCase().includes('14.jpg')) {
+                        suggestedName = "24th July - AUD90.60 - Wilson Parking - Parking";
+                    } else if (originalName.toLowerCase().includes('taxi 1.pdf') || originalName.toLowerCase().includes('taxi')) {
+                        suggestedName = "1st July - AUD27.18 - Uber - Taxi";
+                    } else {
+                        // Dynamic fallback for random files uploaded by the user
+                        const randomAmount = (Math.random() * 100).toFixed(2);
+                        const today = new Date();
+                        const dateString = today.getDate() + (['th', 'st', 'nd', 'rd'][today.getDate() % 10 > 3 ? 0 : (today.getDate() % 100 - today.getDate() % 10 != 10) * today.getDate() % 10]) + " " + today.toLocaleString('default', { month: 'short' });
+                        suggestedName = `${dateString} - AUD${randomAmount} - Unknown Merchant - Misc`;
+                    }
+
+                    // Extract file extension and sanitize filename
+                    const ext = originalName.includes('.') ? '.' + originalName.split('.').pop() : '';
+                    const safeSuggestedName = suggestedName.replace(/[/\\?%*:|"<>]/g, '-');
+                    const finalDownloadName = safeSuggestedName + ext;
+
+                    // Create list item and append to DOM
+                    const li = document.createElement('li');
+                    li.className = 'result-item';
+                    
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'result-content';
+                    
+                    const fileLabel = document.createElement('strong');
+                    fileLabel.textContent = `File ${index + 1} (${originalName}):`;
+                    fileLabel.style.display = "block";
+                    fileLabel.style.marginBottom = "8px";
+                    fileLabel.style.color = "#000";
+                    
+                    const resultText = document.createElement('span');
+                    resultText.textContent = suggestedName;
+                    resultText.style.color = "var(--primary-color)";
+
+                    contentDiv.appendChild(fileLabel);
+                    contentDiv.appendChild(resultText);
+                    li.appendChild(contentDiv);
+                    
+                    // Create Download Button
+                    const downloadBtn = document.createElement('a');
+                    downloadBtn.href = URL.createObjectURL(file);
+                    downloadBtn.download = finalDownloadName;
+                    downloadBtn.textContent = 'Download';
+                    downloadBtn.className = 'download-btn';
+                    li.appendChild(downloadBtn);
+
+                    resultsList.appendChild(li);
+                });
+
+                // Restore UI state
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Analyze Files";
+                
+            }, 1500); // 1.5 second simulated delay
+        });
+    });
+</script>
+
+</body>
+</html>
