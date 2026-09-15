@@ -3,388 +3,699 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Receipt Analyzer</title>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <title>Smart Receipt & Invoice Renamer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- PDF.js library for reliable cross-browser PDF rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <style>
-        :root {
-            --bg-color: #f4f4f0;
-            --primary-color: #ff3366;
-            --border-color: #000000;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            font-family: 'Press Start 2P', monospace;
-            color: var(--border-color);
-            line-height: 1.6;
-            padding: 20px;
-            font-size: 10px;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            min-height: 100vh;
-        }
-
-        @media (min-width: 768px) {
-            body {
-                padding: 40px;
-                font-size: 12px;
-            }
-        }
-
-        .container {
-            width: 100%;
-            max-width: 800px;
-        }
-
-        .pixel-box {
-            background-color: #ffffff;
-            padding: 20px;
-            margin-bottom: 30px;
-            position: relative;
-            clip-path: polygon(
-                4px 0, calc(100% - 4px) 0,
-                calc(100% - 4px) 4px, 100% 4px,
-                100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px),
-                calc(100% - 4px) 100%, 4px 100%,
-                4px calc(100% - 4px), 0 calc(100% - 4px),
-                0 4px, 4px 4px
-            );
-        }
-
-        @media (min-width: 768px) {
-            .pixel-box {
-                padding: 30px;
-            }
-        }
-
-        .pixel-wrapper {
-            background-color: var(--border-color);
-            padding: 4px; /* Border thickness */
-            margin-bottom: 30px;
-            filter: drop-shadow(6px 6px 0px rgba(0,0,0,1));
-            clip-path: polygon(
-                4px 0, calc(100% - 4px) 0,
-                calc(100% - 4px) 4px, 100% 4px,
-                100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px),
-                calc(100% - 4px) 100%, 4px 100%,
-                4px calc(100% - 4px), 0 calc(100% - 4px),
-                0 4px, 4px 4px
-            );
-            transition: transform 0.1s ease-in-out;
-        }
-
-        .pixel-wrapper .pixel-box {
-            margin-bottom: 0; 
-        }
-
-        h1 {
-            font-size: 14px;
-            text-transform: uppercase;
-            margin-top: 0;
-            margin-bottom: 30px;
-            text-align: center;
-            line-height: 1.4;
-        }
-
-        @media (min-width: 768px) {
-            h1 {
-                font-size: 18px;
-            }
-        }
-
-        .file-input-wrapper {
-            margin-bottom: 25px;
-            background: #eee;
-            padding: 15px;
-            border: 2px dashed #ccc;
-            text-align: center;
-            cursor: pointer;
-        }
-
-        input[type="file"] {
-            display: block;
-            width: 100%;
-            font-family: inherit;
-            font-size: 10px;
-        }
-
-        .btn-wrapper {
-            background-color: #000;
-            padding: 4px;
-            display: inline-block;
-            width: 100%;
-            cursor: pointer;
-        }
-
-        button {
-            background-color: var(--primary-color);
-            color: #fff;
-            border: none;
-            padding: 15px 20px;
-            font-family: inherit;
-            font-size: 12px;
-            cursor: pointer;
-            text-transform: uppercase;
-            width: 100%;
-            transition: background-color 0.2s;
-        }
-
-        button:hover {
-            background-color: #e6004c;
-        }
-        
-        button:active {
-            transform: scale(0.98);
-        }
-
-        button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-
-        .button-group {
-            display: flex;
-            gap: 15px;
-            flex-direction: column;
-        }
-
-        @media (min-width: 768px) {
-            .button-group {
-                flex-direction: row;
-            }
-        }
-
-        .btn-reset {
-            background-color: #555;
-        }
-
-        .btn-reset:hover {
-            background-color: #777;
-        }
-
-        .result-list {
-            list-style-type: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .result-list li {
-            background: #eef;
-            margin-bottom: 10px;
-            padding: 15px;
-            border-left: 4px solid var(--primary-color);
-            word-break: break-all;
-            line-height: 1.8;
-            animation: fadeIn 0.5s ease-in;
-        }
-
-        .result-list li:last-child {
-            margin-bottom: 0;
-        }
-
-        .result-item {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        @media (min-width: 768px) {
-            .result-item {
-                flex-direction: row;
-                justify-content: space-between;
-                align-items: center;
-            }
-        }
-
-        .result-content {
-            flex-grow: 1;
-        }
-
-        .download-btn {
-            background-color: #000;
-            color: #fff;
-            padding: 10px 15px;
-            font-size: 10px;
-            text-decoration: none;
-            display: inline-block;
-            text-align: center;
-            border: none;
-            cursor: pointer;
-            text-transform: uppercase;
-            transition: background-color 0.2s;
-            white-space: nowrap;
-        }
-
-        .download-btn:hover {
-            background-color: var(--primary-color);
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 20px;
-            font-size: 14px;
-            color: var(--primary-color);
-            animation: blink 1s infinite;
-        }
-
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
+        body { font-family: 'Inter', sans-serif; }
+        .drag-active { border-color: #3b82f6 !important; background-color: #eff6ff !important; }
+        .file-item-active { border-left: 4px solid #3b82f6; background-color: #f8fafc; }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
-<body>
+<body class="bg-gray-100 h-screen flex flex-col overflow-hidden text-gray-800">
 
-<div class="container">
-    <div class="pixel-wrapper">
-        <div class="pixel-box">
-            <h1>Receipt Analyzer<br><span style="font-size: 10px; color: #888;">System V1.0</span></h1>
-            <form id="uploadForm">
-                <div class="file-input-wrapper">
-                    <input type="file" id="receipts" name="receipts[]" multiple accept=".jpg,.jpeg,.png,.pdf,.xls,.xlsx,.doc,.docx" required>
-                </div>
-                
-                <div class="button-group">
-                    <div class="pixel-wrapper btn-wrapper" style="filter: none; margin-bottom: 0; flex: 1;">
-                        <button type="submit" id="submitBtn" class="pixel-box" style="margin:0; padding: 15px;">
-                            Analyze Files
-                        </button>
-                    </div>
-                    <div class="pixel-wrapper btn-wrapper" style="filter: none; margin-bottom: 0; flex: 1;">
-                        <button type="button" id="resetBtn" class="pixel-box btn-reset" style="margin:0; padding: 15px;">
-                            Reset
-                        </button>
-                    </div>
-                </div>
-            </form>
+    <header class="bg-white shadow-sm border-b px-6 py-4 flex justify-between items-center z-10 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="bg-blue-600 text-white p-2 rounded-lg flex items-center justify-center h-10 w-10 shadow-sm">
+                <i class="fas fa-file-invoice-dollar text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold text-gray-900 leading-tight">Smart Receipt Renamer</h1>
+                <p class="text-xs text-gray-500">AI-powered standardized file organization</p>
+            </div>
         </div>
-    </div>
-
-    <!-- Container for dynamic results -->
-    <div id="resultsContainer" class="pixel-wrapper hidden">
-        <div class="pixel-box">
-            <div id="loadingIndicator" class="loading hidden">ANALYZING...</div>
-            <ul id="resultsList" class="result-list">
-                <!-- Results injected here via JS -->
-            </ul>
+        <div class="flex items-center gap-3 flex-wrap">
+            <!-- Settings Button (Safely hides API key configuration in background) -->
+            <button onclick="app.openSettingsModal()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 p-2.5 rounded-md transition font-medium flex items-center justify-center border border-gray-200 shadow-sm text-sm" title="API Settings">
+                <i class="fas fa-cog text-gray-600"></i>
+            </button>
+            <button onclick="app.downloadAll()" class="bg-green-50 hover:bg-green-100 text-green-700 px-4 py-2 rounded-md transition font-medium flex items-center gap-2 border border-green-200 shadow-sm text-sm">
+                <i class="fas fa-download"></i> Download All
+            </button>
+            <button onclick="app.resetAll()" class="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-md transition font-medium flex items-center gap-2 border border-red-200 shadow-sm text-sm">
+                <i class="fas fa-trash-alt"></i> Reset All
+            </button>
         </div>
-    </div>
-</div>
+    </header>
 
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const form = document.getElementById('uploadForm');
-        const fileInput = document.getElementById('receipts');
-        const resultsContainer = document.getElementById('resultsContainer');
-        const resultsList = document.getElementById('resultsList');
-        const submitBtn = document.getElementById('submitBtn');
-        const resetBtn = document.getElementById('resetBtn');
-        const loadingIndicator = document.getElementById('loadingIndicator');
-
-        resetBtn.addEventListener('click', () => {
-            form.reset();
-            resultsList.innerHTML = '';
-            resultsContainer.classList.add('hidden');
-            loadingIndicator.classList.add('hidden');
-            submitBtn.disabled = false;
-            submitBtn.textContent = "Analyze Files";
-        });
-
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
+    <main class="flex-1 flex flex-col md:flex-row overflow-hidden">
+        
+        <!-- Left Panel: Upload & List -->
+        <div class="w-full md:w-1/2 lg:w-5/12 xl:w-1/3 flex flex-col bg-white border-r relative z-0 shrink-0">
             
-            const files = fileInput.files;
-            if (files.length === 0) return;
+            <!-- Upload Dropzone -->
+            <div class="p-4 border-b shrink-0 bg-gray-50">
+                <div id="dropzone" class="border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-50 transition min-h-[160px] bg-white">
+                    <i class="fas fa-cloud-upload-alt text-4xl text-blue-500 mb-3"></i>
+                    <h3 class="font-semibold text-gray-700 mb-1">Drag & drop files here</h3>
+                    <p class="text-xs text-gray-500 mb-4">Supports Images (JPG, PNG) & PDFs</p>
+                    <input type="file" id="fileInput" class="hidden" multiple accept="image/*,application/pdf">
+                    <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-5 py-2 rounded-full transition shadow-sm font-medium">
+                        Browse Files
+                    </button>
+                </div>
+            </div>
 
-            // Reset UI for new submission
-            resultsList.innerHTML = '';
-            resultsContainer.classList.remove('hidden');
-            loadingIndicator.classList.remove('hidden');
-            submitBtn.disabled = true;
-            submitBtn.textContent = "PROCESSING...";
+            <!-- List Header -->
+            <div class="px-4 py-3 border-b flex justify-between items-center bg-white shrink-0">
+                <h2 class="font-semibold text-gray-700 text-sm uppercase tracking-wider">Processed Files <span id="fileCount" class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full ml-1">0</span></h2>
+            </div>
 
-            // Simulate server/OCR processing delay
-            setTimeout(() => {
-                loadingIndicator.classList.add('hidden');
+            <!-- File List Container -->
+            <div id="fileList" class="flex-1 overflow-y-auto p-2 bg-gray-50 space-y-2 pb-20">
+                <!-- Empty State -->
+                <div id="emptyState" class="h-full flex flex-col items-center justify-center text-gray-400 p-8 text-center">
+                    <i class="fas fa-folder-open text-5xl mb-4 text-gray-300"></i>
+                    <p class="text-sm">No files uploaded yet.</p>
+                    <p class="text-xs mt-1">Upload your receipts and let AI organize them.</p>
+                </div>
+                <!-- Dynamic Items will be appended here -->
+            </div>
+        </div>
+
+        <!-- Right Panel: Preview Pane -->
+        <div class="w-full md:w-1/2 lg:w-7/12 xl:w-2/3 bg-gray-800 flex flex-col relative z-0 flex-1">
+            <div class="absolute inset-0 flex flex-col">
+                <!-- Preview Header -->
+                <div class="bg-gray-900 text-gray-300 px-4 py-3 flex justify-between items-center shrink-0 shadow-md z-10">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-eye text-blue-400"></i>
+                        <h2 class="font-medium text-sm">Document Preview</h2>
+                    </div>
+                    <div id="previewTitle" class="text-xs text-gray-400 truncate max-w-[300px]"></div>
+                </div>
+
+                <!-- Preview Content -->
+                <div id="previewContainer" class="flex-1 flex items-center justify-center bg-gray-800 p-4 overflow-hidden relative">
+                    <!-- Default Preview State -->
+                    <div id="previewPlaceholder" class="text-gray-500 flex flex-col items-center">
+                        <i class="fas fa-image text-6xl mb-4 opacity-50"></i>
+                        <p>Select a file to preview</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Message Modal (No standard alerts) -->
+    <div id="messageModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 transform transition-all scale-95 opacity-0" id="messageModalContent">
+            <h3 class="text-lg font-bold text-gray-900 mb-2" id="messageTitle">Notice</h3>
+            <p class="text-gray-600 text-sm mb-6" id="messageBody">Message goes here.</p>
+            <div class="flex justify-end">
+                <button onclick="app.closeModal()" class="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition">Understood</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal (Safely manages API Key in background) -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 transform transition-all scale-95 opacity-0" id="settingsModalContent">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <i class="fas fa-cog text-blue-600"></i> Settings & Security
+                </h3>
+                <button onclick="app.closeSettingsModal()" class="text-gray-400 hover:text-gray-600 transition">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Custom Gemini API Key</label>
+                    <div class="relative">
+                        <input type="password" id="apiKeyInputModal" placeholder="Leave blank for automatic default key" class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none pr-10">
+                        <button type="button" onclick="app.toggleKeyVisibility()" class="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
+                            <i id="keyToggleIcon" class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1.5 leading-relaxed">
+                        By default, the application uses automatic system authorization. You only need to set a custom key here if hosting independently (e.g. on GitHub Pages).
+                    </p>
+                </div>
+                <div class="bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-blue-800 flex items-start gap-2">
+                    <i class="fas fa-shield-alt text-blue-600 text-sm mt-0.5 shrink-0"></i>
+                    <span>Your key is stored safely in local storage and is never exposed in the interface.</span>
+                </div>
+            </div>
+            <div class="flex justify-between items-center mt-6 pt-4 border-t">
+                <button onclick="app.clearApiKey()" class="text-xs text-red-600 hover:text-red-700 font-medium">Clear Key</button>
+                <div class="flex gap-2">
+                    <button onclick="app.closeSettingsModal()" class="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition">Cancel</button>
+                    <button onclick="app.saveApiKeyFromModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-medium hover:bg-blue-700 transition shadow-sm">Save Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const app = {
+            state: {
+                files: [], // Array of objects: { id, originalName, mimeType, base64, ext, generatedName, status, error }
+                activeFileId: null
+            },
+            
+            elements: {
+                dropzone: document.getElementById('dropzone'),
+                fileInput: document.getElementById('fileInput'),
+                fileList: document.getElementById('fileList'),
+                emptyState: document.getElementById('emptyState'),
+                fileCount: document.getElementById('fileCount'),
+                previewContainer: document.getElementById('previewContainer'),
+                previewPlaceholder: document.getElementById('previewPlaceholder'),
+                previewTitle: document.getElementById('previewTitle'),
+                modal: document.getElementById('messageModal'),
+                modalContent: document.getElementById('messageModalContent'),
+                modalTitle: document.getElementById('messageTitle'),
+                modalBody: document.getElementById('messageBody'),
+                settingsModal: document.getElementById('settingsModal'),
+                settingsModalContent: document.getElementById('settingsModalContent'),
+                apiKeyInputModal: document.getElementById('apiKeyInputModal')
+            },
+
+            init() {
+                // Initialize PDF.js worker
+                if (window.pdfjsLib) {
+                    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                }
+                this.bindEvents();
+                const savedKey = localStorage.getItem('geminiApiKey');
+                if (savedKey && this.elements.apiKeyInputModal) {
+                    this.elements.apiKeyInputModal.value = savedKey;
+                }
+            },
+
+            bindEvents() {
+                // Dropzone Events
+                this.elements.dropzone.addEventListener('click', () => this.elements.fileInput.click());
+                this.elements.fileInput.addEventListener('change', (e) => this.handleFiles(e.target.files));
                 
-                // Process each uploaded file
-                Array.from(files).forEach((file, index) => {
-                    const originalName = file.name;
-                    let suggestedName = "";
-
-                    // Mock logic to simulate intelligent categorization
-                    // In your real PHP app, this comes from your OCR/Regex logic
-                    if (originalName.toLowerCase().includes('14.jpg')) {
-                        suggestedName = "24th July - AUD90.60 - Wilson Parking - Parking";
-                    } else if (originalName.toLowerCase().includes('taxi 1.pdf') || originalName.toLowerCase().includes('taxi')) {
-                        suggestedName = "1st July - AUD27.18 - Uber - Taxi";
-                    } else {
-                        // Dynamic fallback for random files uploaded by the user
-                        const randomAmount = (Math.random() * 100).toFixed(2);
-                        const today = new Date();
-                        const dateString = today.getDate() + (['th', 'st', 'nd', 'rd'][today.getDate() % 10 > 3 ? 0 : (today.getDate() % 100 - today.getDate() % 10 != 10) * today.getDate() % 10]) + " " + today.toLocaleString('default', { month: 'short' });
-                        suggestedName = `${dateString} - AUD${randomAmount} - Unknown Merchant - Misc`;
-                    }
-
-                    // Extract file extension and sanitize filename
-                    const ext = originalName.includes('.') ? '.' + originalName.split('.').pop() : '';
-                    const safeSuggestedName = suggestedName.replace(/[/\\?%*:|"<>]/g, '-');
-                    const finalDownloadName = safeSuggestedName + ext;
-
-                    // Create list item and append to DOM
-                    const li = document.createElement('li');
-                    li.className = 'result-item';
-                    
-                    const contentDiv = document.createElement('div');
-                    contentDiv.className = 'result-content';
-                    
-                    const fileLabel = document.createElement('strong');
-                    fileLabel.textContent = `File ${index + 1} (${originalName}):`;
-                    fileLabel.style.display = "block";
-                    fileLabel.style.marginBottom = "8px";
-                    fileLabel.style.color = "#000";
-                    
-                    const resultText = document.createElement('span');
-                    resultText.textContent = suggestedName;
-                    resultText.style.color = "var(--primary-color)";
-
-                    contentDiv.appendChild(fileLabel);
-                    contentDiv.appendChild(resultText);
-                    li.appendChild(contentDiv);
-                    
-                    // Create Download Button
-                    const downloadBtn = document.createElement('a');
-                    downloadBtn.href = URL.createObjectURL(file);
-                    downloadBtn.download = finalDownloadName;
-                    downloadBtn.textContent = 'Download';
-                    downloadBtn.className = 'download-btn';
-                    li.appendChild(downloadBtn);
-
-                    resultsList.appendChild(li);
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    this.elements.dropzone.addEventListener(eventName, this.preventDefaults, false);
                 });
 
-                // Restore UI state
-                submitBtn.disabled = false;
-                submitBtn.textContent = "Analyze Files";
-                
-            }, 1500); // 1.5 second simulated delay
-        });
-    });
-</script>
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    this.elements.dropzone.addEventListener(eventName, () => {
+                        this.elements.dropzone.classList.add('drag-active');
+                    }, false);
+                });
 
+                ['dragleave', 'drop'].forEach(eventName => {
+                    this.elements.dropzone.addEventListener(eventName, () => {
+                        this.elements.dropzone.classList.remove('drag-active');
+                    }, false);
+                });
+
+                this.elements.dropzone.addEventListener('drop', (e) => {
+                    this.handleFiles(e.dataTransfer.files);
+                }, false);
+            },
+
+            preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            },
+
+            showMessage(title, message) {
+                this.elements.modalTitle.innerText = title;
+                this.elements.modalBody.innerText = message;
+                this.elements.modal.classList.remove('hidden');
+                this.elements.modal.classList.add('flex');
+                setTimeout(() => {
+                    this.elements.modalContent.classList.remove('scale-95', 'opacity-0');
+                    this.elements.modalContent.classList.add('scale-100', 'opacity-100');
+                }, 10);
+            },
+
+            closeModal() {
+                this.elements.modalContent.classList.remove('scale-100', 'opacity-100');
+                this.elements.modalContent.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => {
+                    this.elements.modal.classList.add('hidden');
+                    this.elements.modal.classList.remove('flex');
+                }, 200);
+            },
+
+            openSettingsModal() {
+                const savedKey = localStorage.getItem('geminiApiKey') || '';
+                if (this.elements.apiKeyInputModal) {
+                    this.elements.apiKeyInputModal.value = savedKey;
+                }
+                this.elements.settingsModal.classList.remove('hidden');
+                this.elements.settingsModal.classList.add('flex');
+                setTimeout(() => {
+                    this.elements.settingsModalContent.classList.remove('scale-95', 'opacity-0');
+                    this.elements.settingsModalContent.classList.add('scale-100', 'opacity-100');
+                }, 10);
+            },
+
+            closeSettingsModal() {
+                this.elements.settingsModalContent.classList.remove('scale-100', 'opacity-100');
+                this.elements.settingsModalContent.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => {
+                    this.elements.settingsModal.classList.add('hidden');
+                    this.elements.settingsModal.classList.remove('flex');
+                }, 200);
+            },
+
+            saveApiKeyFromModal() {
+                const val = this.elements.apiKeyInputModal.value.trim();
+                localStorage.setItem('geminiApiKey', val);
+                this.closeSettingsModal();
+                this.showMessage("Settings Saved", val ? "Custom API key updated successfully." : "Using standard automatic API authorization.");
+            },
+
+            clearApiKey() {
+                localStorage.removeItem('geminiApiKey');
+                if (this.elements.apiKeyInputModal) {
+                    this.elements.apiKeyInputModal.value = '';
+                }
+                this.closeSettingsModal();
+                this.showMessage("Key Cleared", "Custom key removed. The app will now use default automatic authorization.");
+            },
+
+            toggleKeyVisibility() {
+                const input = this.elements.apiKeyInputModal;
+                const icon = document.getElementById('keyToggleIcon');
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                } else {
+                    input.type = 'password';
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+            },
+
+            async handleFiles(files) {
+                if (!files || files.length === 0) return;
+
+                const supportedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    
+                    // Check for duplicate filename
+                    const isDuplicate = this.state.files.some(f => f.originalName === file.name);
+                    if (isDuplicate) {
+                        this.showMessage("Duplicate File Upload Blocked", `The file "${file.name}" has already been uploaded. Upload was cancelled to prevent duplicates.`);
+                        continue;
+                    }
+
+                    if (!supportedTypes.includes(file.type)) {
+                        this.showMessage("Unsupported File", `The file "${file.name}" is not supported. Please upload Images (JPG/PNG) or PDFs.`);
+                        continue;
+                    }
+
+                    const id = 'file_' + Math.random().toString(36).substr(2, 9);
+                    const ext = file.name.substring(file.name.lastIndexOf('.'));
+                    
+                    const newFileEntry = {
+                        id: id,
+                        originalName: file.name,
+                        ext: ext,
+                        mimeType: file.type,
+                        base64: null,
+                        generatedName: 'Analyzing...',
+                        status: 'loading',
+                        error: null
+                    };
+
+                    this.state.files.push(newFileEntry);
+                    this.renderList();
+                    
+                    // Automatically preview the newest file
+                    this.setActivePreview(id);
+
+                    try {
+                        const base64Data = await this.readAsBase64(file);
+                        // Store only the raw base64 data (remove data:image/png;base64, prefix)
+                        newFileEntry.base64 = base64Data.split(',')[1];
+                        
+                        // Process with AI
+                        await this.processWithAI(newFileEntry);
+                    } catch (error) {
+                        newFileEntry.status = 'error';
+                        newFileEntry.error = 'Failed to read file locally.';
+                        newFileEntry.generatedName = 'Error reading file';
+                        this.renderList();
+                    }
+                }
+                
+                // Clear input to allow re-uploading files if needed
+                this.elements.fileInput.value = '';
+            },
+
+            readAsBase64(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = error => reject(error);
+                    reader.readAsDataURL(file);
+                });
+            },
+
+            saveApiKey(value) {
+                localStorage.setItem('geminiApiKey', value.trim());
+            },
+
+            async processWithAI(fileEntry) {
+                // Uses user-provided key for localhost/github, falls back to empty string for Canvas
+                const userKey = localStorage.getItem('geminiApiKey') || ""; 
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${userKey}`;
+
+                const systemPrompt = `You are a strict document parser. Your ONLY job is to output a single string representing a filename. 
+DO NOT provide summaries. DO NOT provide breakdowns. DO NOT include markdown formatting, backticks, or quotes around the response.
+Analyze the provided receipt/invoice and generate exactly this format:
+[Date] - [Currency][Amount] - [Merchant] - [Category]
+
+Rules:
+1. Date: DDth Month format (e.g., "27th July", "3rd January").
+2. Amount: Currency code + amount with two decimal places (e.g., "AUD34.00", "SGD125.50").
+3. Merchant: Business name exactly as shown.
+4. Category: 'Meal', 'Drinks', 'Taxi', 'Parking', or 'Other'. For mixed items, use the highest value category. 'Other' must specify the type in brackets.
+If any piece of info is missing, blurred or unclear, substitute its block with uppercase flagged text (e.g., [DATE UNRECOGNIZED] or [AMOUNT UNRECOGNIZED]).
+Example Perfect Output: 1st July - AUD27.18 - Uber - Taxi
+Example Unclear Output: 1st July - [AMOUNT UNRECOGNIZED] - Royal Hotel - Drinks`;
+
+                const payload = {
+                    contents: [{
+                        role: "user",
+                        parts: [
+                            { text: systemPrompt },
+                            {
+                                inlineData: {
+                                    mimeType: fileEntry.mimeType,
+                                    data: fileEntry.base64
+                                }
+                            }
+                        ]
+                    }],
+                    generationConfig: {
+                        temperature: 0.1 // Low temperature for deterministic adherence to rules
+                    }
+                };
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`API returned status ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    
+                    if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts.length > 0) {
+                        let text = result.candidates[0].content.parts[0].text.trim();
+                        // Clean up any potential markdown or quotes added by AI
+                        text = text.replace(/^"|"$/g, '').replace(/```.*/g, '').trim();
+                        
+                        fileEntry.generatedName = text;
+                        fileEntry.status = 'success';
+                    } else {
+                        throw new Error("Unexpected response structure from AI");
+                    }
+                } catch (error) {
+                    console.error("AI Processing Error:", error);
+                    fileEntry.status = 'error';
+                    fileEntry.error = 'AI processing failed.';
+                    fileEntry.generatedName = '[ERROR GENERATING NAME]';
+                }
+
+                this.renderList();
+            },
+
+            renderList() {
+                this.elements.fileCount.innerText = this.state.files.length;
+                
+                if (this.state.files.length === 0) {
+                    this.elements.emptyState.classList.remove('hidden');
+                    this.elements.fileList.innerHTML = '';
+                    this.elements.fileList.appendChild(this.elements.emptyState);
+                    return;
+                }
+
+                this.elements.emptyState.classList.add('hidden');
+                
+                // Keep references to focused input to maintain cursor position during re-renders
+                const activeElement = document.activeElement;
+                let activeInputId = null;
+                if (activeElement && activeElement.tagName === 'INPUT' && activeElement.hasAttribute('data-file-id')) {
+                    activeInputId = activeElement.getAttribute('data-file-id');
+                }
+
+                let html = '';
+                
+                this.state.files.forEach((file, index) => {
+                    const isActive = file.id === this.state.activeFileId;
+                    const activeClass = isActive ? 'file-item-active' : 'border border-transparent border-b-gray-200';
+                    
+                    let statusIcon = '';
+                    if (file.status === 'loading') {
+                        statusIcon = '<i class="fas fa-spinner fa-spin text-blue-500" title="Analyzing AI..."></i>';
+                    } else if (file.status === 'success') {
+                        statusIcon = '<i class="fas fa-check-circle text-green-500" title="Analysis Complete"></i>';
+                    } else {
+                        statusIcon = '<i class="fas fa-exclamation-circle text-red-500" title="Error processing"></i>';
+                    }
+
+                    html += `
+                        <div class="bg-white p-3 rounded-lg shadow-sm cursor-pointer transition flex flex-col gap-2 ${activeClass}" onclick="app.setActivePreview('${file.id}')">
+                            <!-- File Meta Header -->
+                            <div class="flex justify-between items-start w-full">
+                                <div class="flex items-center gap-2 overflow-hidden flex-1">
+                                    <div class="shrink-0 text-gray-400">
+                                        <i class="${file.mimeType.includes('pdf') ? 'fas fa-file-pdf text-red-400' : 'fas fa-image text-blue-400'}"></i>
+                                    </div>
+                                    <span class="text-xs text-gray-500 truncate" title="${file.originalName}">File ${index + 1}: ${file.originalName}</span>
+                                </div>
+                                <div class="flex items-center gap-2 shrink-0 ml-2">
+                                    ${statusIcon}
+                                    <button onclick="event.stopPropagation(); app.removeFile('${file.id}')" class="text-gray-400 hover:text-red-500 transition p-1 rounded hover:bg-red-50" title="Remove File">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Editable Filename Input -->
+                            <div class="relative w-full flex items-center gap-2 mt-1" onclick="event.stopPropagation();">
+                                <input type="text" 
+                                    data-file-id="${file.id}"
+                                    value="${file.generatedName.replace(/"/g, '&quot;')}" 
+                                    oninput="app.updateFileName('${file.id}', this.value)"
+                                    ${file.status === 'loading' ? 'disabled' : ''}
+                                    class="w-full text-sm font-semibold text-gray-800 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-gray-50 hover:bg-white"
+                                    placeholder="Generated filename..."
+                                />
+                                <button onclick="event.stopPropagation(); app.downloadFile('${file.id}')" 
+                                    class="shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-700 p-2 rounded-md transition shadow-sm border border-gray-200 ${file.status === 'loading' ? 'opacity-50 cursor-not-allowed' : ''}" 
+                                    title="Download Renamed File"
+                                    ${file.status === 'loading' ? 'disabled' : ''}>
+                                    <i class="fas fa-download"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                // Temporarily store empty state before overwriting innerHTML to preserve it
+                const emptyStateEl = this.elements.emptyState;
+                this.elements.fileList.innerHTML = html;
+                this.elements.fileList.appendChild(emptyStateEl); // Put it back (it's hidden)
+
+                // Restore focus if an input was active
+                if (activeInputId) {
+                    const inputToFocus = document.querySelector(`input[data-file-id="${activeInputId}"]`);
+                    if (inputToFocus) {
+                        inputToFocus.focus();
+                        // Move cursor to end
+                        const val = inputToFocus.value;
+                        inputToFocus.value = '';
+                        inputToFocus.value = val;
+                    }
+                }
+            },
+
+            updateFileName(id, newValue) {
+                const file = this.state.files.find(f => f.id === id);
+                if (file) {
+                    file.generatedName = newValue;
+                }
+            },
+
+            setActivePreview(id) {
+                this.state.activeFileId = id;
+                this.renderList(); // Re-render to update active styling
+
+                const file = this.state.files.find(f => f.id === id);
+                if (!file || !file.base64) {
+                    this.elements.previewContainer.innerHTML = '';
+                    this.elements.previewContainer.appendChild(this.elements.previewPlaceholder);
+                    this.elements.previewTitle.innerText = '';
+                    return;
+                }
+
+                this.elements.previewTitle.innerText = file.generatedName || file.originalName;
+                
+                const dataUrl = `data:${file.mimeType};base64,${file.base64}`;
+
+                if (file.mimeType.includes('image')) {
+                    this.elements.previewContainer.innerHTML = `
+                        <div class="w-full h-full p-4 flex items-center justify-center">
+                            <img src="${dataUrl}" class="max-w-full max-h-full object-contain rounded shadow-lg bg-gray-900 border border-gray-700" alt="Preview" />
+                        </div>
+                    `;
+                } else if (file.mimeType.includes('pdf')) {
+                    this.renderPdfPreview(file);
+                }
+            },
+
+            async renderPdfPreview(file) {
+                this.elements.previewContainer.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-full text-white">
+                        <i class="fas fa-spinner fa-spin text-3xl mb-2 text-blue-400"></i>
+                        <p class="text-xs text-gray-400">Rendering PDF preview...</p>
+                    </div>
+                `;
+
+                try {
+                    const byteCharacters = atob(file.base64);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) {
+                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    }
+                    const byteArray = new Uint8Array(byteNumbers);
+
+                    if (!window.pdfjsLib) {
+                        throw new Error("PDF renderer library not loaded.");
+                    }
+
+                    const loadingTask = pdfjsLib.getDocument({ data: byteArray });
+                    const pdf = await loadingTask.promise;
+                    const page = await pdf.getPage(1);
+
+                    const viewport = page.getViewport({ scale: 1.2 });
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+                    canvas.className = "max-w-full max-h-full object-contain rounded shadow-lg bg-white border border-gray-700";
+
+                    const renderContext = {
+                        canvasContext: context,
+                        viewport: viewport
+                    };
+                    await page.render(renderContext).promise;
+
+                    this.elements.previewContainer.innerHTML = '';
+                    const containerDiv = document.createElement('div');
+                    containerDiv.className = 'w-full h-full p-4 flex flex-col items-center justify-center overflow-auto';
+                    containerDiv.appendChild(canvas);
+                    
+                    if (pdf.numPages > 1) {
+                        const pageBadge = document.createElement('div');
+                        pageBadge.className = 'text-xs text-gray-400 mt-2 bg-gray-900/80 px-3 py-1 rounded-full border border-gray-700';
+                        pageBadge.innerText = `Page 1 of ${pdf.numPages}`;
+                        containerDiv.appendChild(pageBadge);
+                    }
+                    
+                    this.elements.previewContainer.appendChild(containerDiv);
+                } catch (error) {
+                    console.error("PDF Render Error:", error);
+                    const dataUrl = `data:${file.mimeType};base64,${file.base64}`;
+                    this.elements.previewContainer.innerHTML = `
+                        <div class="text-white flex flex-col items-center justify-center h-full p-6 text-center">
+                            <i class="fas fa-exclamation-triangle text-4xl mb-3 text-yellow-500"></i>
+                            <p class="text-sm mb-1 font-semibold">PDF Render Notice</p>
+                            <p class="text-xs text-gray-400 mb-4 max-w-xs">Could not render PDF preview in canvas.</p>
+                            <a href="${dataUrl}" download="${file.generatedName}${file.ext}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-medium transition shadow">
+                                <i class="fas fa-download mr-1"></i> Download PDF to View
+                            </a>
+                        </div>
+                    `;
+                }
+            },
+
+            removeFile(id) {
+                this.state.files = this.state.files.filter(f => f.id !== id);
+                if (this.state.activeFileId === id) {
+                    this.state.activeFileId = null;
+                    this.setActivePreview(null);
+                }
+                this.renderList();
+            },
+
+            resetAll() {
+                if (this.state.files.length === 0) return;
+                
+                // Optional: Ask for confirmation using custom modal
+                // For direct action as requested, we just clear it.
+                this.state.files = [];
+                this.state.activeFileId = null;
+                this.setActivePreview(null);
+                this.renderList();
+                this.elements.fileInput.value = ''; // clear input
+            },
+
+            downloadAll() {
+                const completedFiles = this.state.files.filter(f => f.status === 'success');
+                
+                if (completedFiles.length === 0) {
+                    this.showMessage("No Files Ready", "There are no successfully processed files to download yet.");
+                    return;
+                }
+
+                // Stagger downloads to prevent browser from blocking multiple simultaneous requests
+                completedFiles.forEach((file, index) => {
+                    setTimeout(() => {
+                        this.downloadFile(file.id);
+                    }, index * 400); 
+                });
+            },
+
+            downloadFile(id) {
+                const file = this.state.files.find(f => f.id === id);
+                if (!file || file.status === 'loading') return;
+
+                // Ensure the filename has the correct extension
+                let finalName = file.generatedName.trim();
+                // Strip existing extension if user manually typed it to avoid duplicates
+                const extMatch = finalName.match(/\.[0-9a-z]+$/i);
+                if (extMatch && extMatch[0].toLowerCase() === file.ext.toLowerCase()) {
+                    finalName = finalName; // already has correct ext
+                } else if (extMatch && extMatch[0].toLowerCase() !== file.ext.toLowerCase()) {
+                     // User typed a wrong extension? Force append correct one for safety
+                     finalName = finalName + file.ext;
+                } else {
+                     // Append original extension
+                     finalName = finalName + file.ext;
+                }
+
+                // Create download link
+                const link = document.createElement('a');
+                link.href = `data:${file.mimeType};base64,${file.base64}`;
+                link.download = finalName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        };
+
+        // Initialize application when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            app.init();
+        });
+    </script>
 </body>
 </html>
