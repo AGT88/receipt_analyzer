@@ -383,7 +383,8 @@
                     return;
                 }
 
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${userKey}`;
+                // FIX: Updated model endpoint to the active gemini-1.5-flash model
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${userKey}`;
 
                 const systemPrompt = `You are a strict document parser. Your ONLY job is to output a single string representing a filename. 
 DO NOT provide summaries. DO NOT provide breakdowns. DO NOT include markdown formatting, backticks, or quotes around the response.
