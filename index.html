@@ -152,14 +152,9 @@
                         for (let i = 1; i <= pdf.numPages; i++) {
                             const page = await pdf.getPage(i);
                             const textContent = await page.getTextContent();
-                            
-                            // SPATIAL PDF PARSING: Reconstruct lines based on Y-axis coordinates
                             let lastY = -1;
                             for (let item of textContent.items) {
-                                // transform[5] represents the vertical (Y) position of the text
-                                if (lastY !== -1 && Math.abs(lastY - item.transform[5]) > 3) {
-                                    extractedText += "\n"; // Inject newline if Y-axis jumps
-                                }
+                                if (lastY !== -1 && Math.abs(lastY - item.transform[5]) > 3) extractedText += "\n"; 
                                 extractedText += item.str + " ";
                                 lastY = item.transform[5];
                             }
@@ -187,10 +182,6 @@
                 renderFileList();
             }
 
-            /**
-             * UPGRADED PARSER
-             * Handles Y-axis reconstructed lines and enforces strict word boundaries.
-             */
             function parseTextForData(text) {
                 let result = {
                     date: "[DATE UNRECOGNIZED]",
@@ -203,74 +194,117 @@
                 const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
                 const lowerText = text.toLowerCase();
 
-                // 1. EXTRACT MERCHANT (Looks for Labels first)
-                let foundMerchant = false;
-                for (let line of lines) {
-                    // Match "Venue Menzies Bar", "Store: McDonalds"
-                    const labelMatch = line.match(/^(?:Venue|Merchant|Store)[\s\:]+(.+)/i);
-                    if (labelMatch) {
-                        result.merchant = labelMatch[1].replace(/[^a-zA-Z0-9\s\&\'\-]/g, '').trim().substring(0, 40);
-                        foundMerchant = true;
-                        break;
-                    }
-                }
-                
-                // Merchant Fallback (Top of receipt logic)
-                if (!foundMerchant) {
-                    const ignoreHeaders = /^(tax invoice|receipt|copy|original|abn|gst|total|date|time)/i;
-                    for (let line of lines) {
-                        if (/[a-zA-Z]{3,}/.test(line) && !ignoreHeaders.test(line)) {
-                            // Split by large gaps just in case columns merged
-                            let cleanLine = line.split(/ {3,}/)[0];
-                            result.merchant = cleanLine.replace(/[^a-zA-Z0-9\s\&\'\-]/g, '').trim().substring(0, 40);
-                            break;
-                        }
-                    }
-                }
-
-                // 2. EXTRACT CATEGORY (Using \b to ensure exact word matches only)
-                // "Cabernet" will NO LONGER match "cab".
+                // 1. EXTRACT CATEGORY
                 if (/\b(uber|grab|ola|taxi|cab|ride)\b/i.test(lowerText)) {
                     result.category = 'Taxi';
                 } else if (/\b(park|parking|wilson|secure\s*park)\b/i.test(lowerText)) {
                     result.category = 'Parking';
                 } else if (/\b(table|covers|restaurant|cafe|food|eat|dining|bistro|kitchen)\b/i.test(lowerText)) {
-                    result.category = 'Meal'; // Triggers on your receipt due to "Table number 721"
+                    result.category = 'Meal';
                 } else if (/\b(bar|liquor|pub|drinks|beverage|wine|beer)\b/i.test(lowerText)) {
                     result.category = 'Drinks';
                 }
 
+                // 2. EXTRACT MERCHANT
+                if (/\buber\b/i.test(lowerText)) result.merchant = "Uber";
+                else if (/\bgrab\b/i.test(lowerText)) result.merchant = "Grab";
+                else if (/\bola\b/i.test(lowerText)) result.merchant = "Ola";
+                else if (/\bwilson parking\b/i.test(lowerText)) result.merchant = "Wilson Parking";
+                else {
+                    let foundMerchant = false;
+                    
+                    // A. Labels Search
+                    for (let line of lines) {
+                        const labelMatch = line.match(/^(?:Venue|Merchant|Store)[\s\:]+(.+)/i);
+                        if (labelMatch) {
+                            result.merchant = labelMatch[1].replace(/[^a-zA-Z0-9\s\&\'\-]/g, '').trim().substring(0, 40);
+                            foundMerchant = true;
+                            break;
+                        }
+                    }
+                    
+                    // B. Anchor-based Search (Solves the "Client QRT / Handwritten" issue)
+                    if (!foundMerchant) {
+                        const invalidWords = /\b(client|cliend|cliendrt|qrt|date|time|invoice|receipt|tax|abn|gst|total|visa|mastercard|cash|st|street|rd|road|ave|avenue|blvd|nsw|vic|qld|wa|sa|tas|act)\b/i;
+                        
+                        // Scan for an Address or ABN line to serve as an anchor
+                        for (let i = 0; i < lines.length; i++) {
+                            if (/\babn\b/i.test(lines[i]) || /\b(st|street|rd|road|ave|avenue|nsw|vic|qld)\b/i.test(lines[i])) {
+                                // Walk backwards up the receipt to find the first valid text (skipping handwritten garbage)
+                                for (let j = i - 1; j >= 0; j--) {
+                                    if (/[a-zA-Z]{3,}/.test(lines[j]) && !invalidWords.test(lines[j])) {
+                                        let cleanLine = lines[j].split(/ {2,}/)[0];
+                                        result.merchant = cleanLine.replace(/[^a-zA-Z0-9\s\&\'\-]/g, '').trim().substring(0, 40);
+                                        foundMerchant = true;
+                                        break;
+                                    }
+                                }
+                                if (foundMerchant) break;
+                            }
+                        }
+                        
+                        // C. Extreme Fallback to top-of-receipt
+                        if (!foundMerchant) {
+                            const isDateLine = /\d{1,2}[\/\-\s]+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i;
+                            for (let line of lines) {
+                                if (/[a-zA-Z]{3,}/.test(line) && !invalidWords.test(line) && !isDateLine.test(line)) {
+                                    let cleanLine = line.split(/ {2,}/)[0]; 
+                                    result.merchant = cleanLine.replace(/[^a-zA-Z0-9\s\&\'\-]/g, '').trim().substring(0, 40);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // 3. EXTRACT AMOUNT
-                const amountMatches = [...text.matchAll(/(\d+\.\d{2})/g)].map(m => parseFloat(m[1]));
-                if (amountMatches.length > 0) {
-                    const maxAmount = Math.max(...amountMatches);
-                    if (maxAmount < 100000) {
-                        result.amount = maxAmount.toFixed(2);
+                const totalMatches = [...text.matchAll(/(?:total|amount due|amount paid|balance)[\s\:]*(?:[A-Z]{3}\s*)?\$?\s*(\d+\.\d{2})/gi)];
+                if (totalMatches.length > 0) {
+                    const totals = totalMatches.map(m => parseFloat(m[1]));
+                    const maxTotal = Math.max(...totals); 
+                    if(maxTotal < 100000) result.amount = maxTotal.toFixed(2);
+                } else {
+                    const allAmounts = [...text.matchAll(/(\d+\.\d{2})/g)].map(m => parseFloat(m[1]));
+                    if (allAmounts.length > 0) {
+                        const maxAmount = Math.max(...allAmounts);
+                        if (maxAmount < 100000) result.amount = maxAmount.toFixed(2);
                     }
                 }
 
                 // 4. EXTRACT DATE
-                const dateRegexWord = /(\d{1,2})[\s\-\/\.]+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[\s\-\/\.]*(\d{2,4})?/i;
-                const matchWord = text.match(dateRegexWord);
+                // Modified regex replaces \b with (?:^|[^\d]) to fix the OCR squashing issue (e.g. Antoine09-Jul-2026)
+                // Also added 'jui' as OCR sometimes misreads 'jul'
+                const dateRegexWord = /(?:^|[^\d])(\d{1,2})[\s\-\/\.]+(jan|feb|mar|apr|may|jun|jul|jui|aug|sep|oct|nov|dec)[a-z]*[\s\-\/\.]*(\d{2,4})?(?:$|[^\d])/ig;
+                const matchesWord = [...text.matchAll(dateRegexWord)];
                 
-                if (matchWord) {
-                    const day = parseInt(matchWord[1], 10);
-                    const monthAbbr = matchWord[2].toLowerCase();
-                    const monthMap = {
-                        jan: "January", feb: "February", mar: "March", apr: "April",
-                        may: "May", jun: "June", jul: "July", aug: "August",
-                        sep: "September", oct: "October", nov: "November", dec: "December"
-                    };
-                    result.date = `${day}${getDaySuffix(day)} ${monthMap[monthAbbr]}`;
-                } else {
-                    const dateRegexNum = /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/;
-                    const matchNum = text.match(dateRegexNum);
-                    if (matchNum) {
-                        const day = parseInt(matchNum[1], 10);
-                        const monthNum = parseInt(matchNum[2], 10) - 1; 
-                        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-                        if (monthNum >= 0 && monthNum <= 11) {
+                let foundDate = false;
+                for (let match of matchesWord) {
+                    const day = parseInt(match[1], 10);
+                    if (day >= 1 && day <= 31) {
+                        let monthAbbr = match[2].toLowerCase();
+                        if (monthAbbr === 'jui') monthAbbr = 'jul'; // OCR correction
+                        
+                        const monthMap = {
+                            jan: "January", feb: "February", mar: "March", apr: "April",
+                            may: "May", jun: "June", jul: "July", aug: "August",
+                            sep: "September", oct: "October", nov: "November", dec: "December"
+                        };
+                        result.date = `${day}${getDaySuffix(day)} ${monthMap[monthAbbr]}`;
+                        foundDate = true;
+                        break; 
+                    }
+                }
+
+                if (!foundDate) {
+                    const dateRegexNum = /(?:^|[^\d])(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:$|[^\d])/g;
+                    const matchesNum = [...text.matchAll(dateRegexNum)];
+                    for (let match of matchesNum) {
+                        const day = parseInt(match[1], 10);
+                        const monthNum = parseInt(match[2], 10) - 1; 
+                        if (day >= 1 && day <= 31 && monthNum >= 0 && monthNum <= 11) {
+                            const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
                             result.date = `${day}${getDaySuffix(day)} ${months[monthNum]}`;
+                            break;
                         }
                     }
                 }
