@@ -370,8 +370,20 @@
             },
 
             async processWithAI(fileEntry) {
-                const apiKey = localStorage.getItem('geminiApiKey')?.trim() || ""; 
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+                const userKey = localStorage.getItem('geminiApiKey')?.trim() || ""; 
+                
+                // Prompt user if API key is missing on standalone hosting (e.g. GitHub Pages)
+                if (!userKey) {
+                    fileEntry.status = 'error';
+                    fileEntry.error = 'API Key Required';
+                    fileEntry.generatedName = '[API KEY REQUIRED - CLICK SETTINGS]';
+                    this.renderList();
+                    this.openSettingsModal();
+                    this.showMessage("Gemini API Key Required", "When hosting on GitHub Pages, an API Key is required. Please enter your Google Gemini API Key in the Settings menu (gear icon at top right).");
+                    return;
+                }
+
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${userKey}`;
 
                 const systemPrompt = `You are a strict document parser. Your ONLY job is to output a single string representing a filename. 
 DO NOT provide summaries. DO NOT provide breakdowns. DO NOT include markdown formatting, backticks, or quotes around the response.
