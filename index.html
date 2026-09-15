@@ -370,9 +370,20 @@
             },
 
             async processWithAI(fileEntry) {
-                // Optional custom user key or empty string for automatic runtime authorization
-                const userKey = localStorage.getItem('geminiApiKey') || ""; 
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${userKey}`;
+                const userKey = localStorage.getItem('geminiApiKey')?.trim() || ""; 
+                
+                // Prompt user if API key is missing on standalone hosting (e.g. GitHub Pages)
+                if (!userKey) {
+                    fileEntry.status = 'error';
+                    fileEntry.error = 'API Key Required';
+                    fileEntry.generatedName = '[API KEY REQUIRED - CLICK SETTINGS]';
+                    this.renderList();
+                    this.openSettingsModal();
+                    this.showMessage("Gemini API Key Required", "When hosting on GitHub Pages, an API Key is required. Please enter your Google Gemini API Key in the Settings menu (gear icon at top right).");
+                    return;
+                }
+
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${userKey}`;
 
                 const systemPrompt = `You are a strict document parser. Your ONLY job is to output a single string representing a filename. 
 DO NOT provide summaries. DO NOT provide breakdowns. DO NOT include markdown formatting, backticks, or quotes around the response.
@@ -404,6 +415,7 @@ Example Unclear Output: 1st July - [AMOUNT UNRECOGNIZED] - Royal Hotel - Drinks`
                 };
 
                 const fetchWithRetry = async (retries = 3, delay = 1000) => {
+                    let lastError = null;
                     for (let attempt = 0; attempt < retries; attempt++) {
                         try {
                             const res = await fetch(apiUrl, {
@@ -411,15 +423,32 @@ Example Unclear Output: 1st July - [AMOUNT UNRECOGNIZED] - Royal Hotel - Drinks`
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify(payload)
                             });
+                            
                             if (res.ok) return res;
-                            if (res.status === 404) {
-                                throw new Error("API returned status 404: Endpoint or model unavailable.");
+
+                            const errorJson = await res.json().catch(() => ({}));
+                            const msg = errorJson.error?.message || `HTTP ${res.status} ${res.statusText}`;
+
+                            if (res.status === 403) {
+                                throw new Error(`Access Denied (403): ${msg}. Please check your API key in Settings.`);
                             }
+                            if (res.status === 400) {
+                                throw new Error(`Bad Request (400): ${msg}`);
+                            }
+                            if (res.status === 404) {
+                                throw new Error(`Model Endpoint Not Found (404): ${msg}`);
+                            }
+
+                            lastError = new Error(`API Error (${res.status}): ${msg}`);
                         } catch (err) {
-                            if (attempt === retries - 1) throw err;
+                            lastError = err;
+                            if (err.message && err.message.includes('403')) throw err;
+                        }
+                        if (attempt < retries - 1) {
                             await new Promise(r => setTimeout(r, delay * Math.pow(2, attempt)));
                         }
                     }
+                    throw lastError || new Error("Failed to connect to Gemini API after retries.");
                 };
 
                 try {
@@ -440,7 +469,7 @@ Example Unclear Output: 1st July - [AMOUNT UNRECOGNIZED] - Royal Hotel - Drinks`
                     console.error("AI Processing Error:", error);
                     fileEntry.status = 'error';
                     fileEntry.error = error.message || 'AI processing failed.';
-                    fileEntry.generatedName = '[ERROR GENERATING NAME]';
+                    fileEntry.generatedName = error.message.includes('403') ? '[ERROR: INVALID/MISSING API KEY]' : '[ERROR GENERATING NAME]';
                 }
 
                 this.renderList();
